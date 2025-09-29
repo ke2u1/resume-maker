@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Resume Generator</title>
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- SortableJS Library for Drag and Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1800px;
+        }
+        .form-section {
+            flex: 1;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 95vh;
+        }
+        .resume-section {
+            flex: 1.2;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        h2, h3 {
+            color: #343a40;
+        }
+        h2 {
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+        h3 {
+            margin-top: 20px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 5px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #007BFF;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-add {
+            background-color: #28a745;
+            margin-top: 0;
+            margin-bottom: 15px;
+            width: auto;
+            padding: 8px 15px;
+        }
+        .btn-add:hover {
+            background-color: #218838;
+        }
+        .btn-remove {
+            background-color: #dc3545;
+            width: auto;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .btn-remove:hover {
+            background-color: #c82333;
+        }
+        .dynamic-section {
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .draggable-section {
+            border: 1px solid #dee2e6;
+            padding: 0 15px 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .section-handle {
+            cursor: move;
+            user-select: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Resume Preview Styles */
+        #resume-preview {
+            color: #333;
+            line-height: 1.6;
+        }
+        .resume-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .resume-header h1 {
+            margin: 0;
+            color: #000;
+            font-size: 2.5em;
+        }
+        .resume-header p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        .resume-section-title {
+            color: #000;
+            font-size: 1.4em;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+        .skills-list p, .work-item, .education-item, .project-item {
+            margin-bottom: 15px;
+        }
+        .skills-list strong {
+            display: inline-block;
+            width: 200px;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        .item-header .date {
+            font-weight: normal;
+            color: #555;
+        }
+         .project-item h3 {
+             margin: 0;
+             display:inline;
+         }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="form-section">
+            <h2>Enter Your Details</h2>
+            <div id="resume-form">
+                <!-- Personal Details (Not Draggable) -->
+                <div class="draggable-section">
+                    <h3>Personal Details</h3>
+                    <div class="input-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" value="KETUL UJAIN">
+                    </div>
+                    <div class="input-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" value="ke2u1ujain@gmail.com">
+                    </div>
+                    <div class="input-group">
+                        <label for="phone">Phone</label>
+                        <input type="text" id="phone" value="+91-9737904734">
+                    </div>
+                    <div class="input-group">
+                        <label for="links">Links (GitHub | LinkedIn | Portfolio)</label>
+                        <input type="text" id="links" value="Github | LinkedIn | Portfolio | Ahmedabad, Gujarat">
+                    </div>
+                </div>
+
+                <!-- Draggable Sections Container -->
+                <div id="form-sections-container">
+                    <!-- Skills -->
+                    <div class="draggable-section" data-section-type="skills">
+                        <h3 class="section-handle">Skills</h3>
+                        <div id="skills-list-form"></div>
+                        <button type="button" class="btn-add" onclick="addSkill()">+ Add Skill</button>
+                    </div>
+
+                    <!-- Work Experience -->
+                    <div class="draggable-section" data-section-type="work">
+                        <h3 class="section-handle">Work Experience</h3>
+                        <div id="work-experience-list"></div>
+                        <button type="button" class="btn-add" onclick="addWorkExperience()">+ Add Work Experience</button>
+                    </div>
+
+                    <!-- Education -->
+                    <div class="draggable-section" data-section-type="education">
+                        <h3 class="section-handle">Education</h3>
+                        <div id="education-list"></div>
+                        <button type="button" class="btn-add" onclick="addEducation()">+ Add Education</button>
+                    </div>
+                    
+                    <!-- Projects -->
+                    <div class="draggable-section" data-section-type="projects">
+                        <h3 class="section-handle">Projects</h3>
+                        <div id="project-list"></div>
+                        <button type="button" class="btn-add" onclick="addProject()">+ Add Project</button>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" onclick="generateResume()">Generate Preview</button>
+                    <button type="button" class="btn-secondary" onclick="downloadPDF()">Download as PDF</button>
+                </div>
+            </div>
+        </div>
+        <div class="resume-section">
+            <div id="resume-preview">
+                <!-- Resume content will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DYNAMIC FORM LOGIC (adding/removing items) ---
+        function addSkill(category = '', values = '') {
+            const container = document.getElementById('skills-list-form');
+            const newItem = document.createElement('div');
+            newItem.className = 'dynamic-section skill-item-form';
+            newItem.innerHTML = `<div class="input-group"><label>Category</label><input type="text" class="skill-category" value="${category}"></div><div class="input-group"><label>Skills (use '|' to separate)</label><input type="text" class="skill-values" value="${values}"></div><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+            container.appendChild(newItem);
+        }
+
+        function addWorkExperience(title = '', date = '', desc = '') {
+            const container = document.getElementById('work-experience-list');
+            const newItem = document.createElement('div');
+            newItem.className = 'dynamic-section work-item-form';
+            newItem.innerHTML = `<div class="input-group"><label>Company - Role</label><input type="text" class="work-title" value="${title}"></div><div class="input-group"><label>Date</label><input type="text" class="work-date" value="${date}"></div><div class="input-group"><label>Description</label><textarea class="work-desc" rows="4">${desc}</textarea></div><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+            container.appendChild(newItem);
+        }
+
+        function addEducation(school = '', date = '', degree = '', courses = '') {
+            const container = document.getElementById('education-list');
+            const newItem = document.createElement('div');
+            newItem.className = 'dynamic-section education-item-form';
+            newItem.innerHTML = `<div class="input-group"><label>Institute Name</label><input type="text" class="edu-school" value="${school}"></div><div class="input-group"><label>Date</label><input type="text" class="edu-date" value="${date}"></div><div class="input-group"><label>Degree</label><input type="text" class="edu-degree" value="${degree}"></div><div class="input-group"><label>Relevant Coursework</label><textarea class="edu-courses" rows="4">${courses}</textarea></div><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+            container.appendChild(newItem);
+        }
+
+        function addProject(name = '', desc = '', tech = '') {
+            const container = document.getElementById('project-list');
+            const newItem = document.createElement('div');
+            newItem.className = 'dynamic-section project-item-form';
+            newItem.innerHTML = `<div class="input-group"><label>Project Name | LINK</label><input type="text" class="proj-name" value="${name}"></div><div class="input-group"><label>Description</label><textarea class="proj-desc" rows="3">${desc}</textarea></div><div class="input-group"><label>Technologies Used</label><input type="text" class="proj-tech" value="${tech}"></div><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+            container.appendChild(newItem);
+        }
+        
+        // --- PREVIEW GENERATION LOGIC ---
+        function generateResume() {
+            const name = document.getElementById('name').value;
+            const links = document.getElementById('links').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+
+            let dynamicContent = '';
+            document.querySelectorAll('#form-sections-container .draggable-section').forEach(section => {
+                const type = section.dataset.sectionType;
+                if (type === 'skills') {
+                    dynamicContent += '<h2 class="resume-section-title">Skills</h2><div class="skills-list">';
+                    section.querySelectorAll('.skill-item-form').forEach(item => {
+                        const category = item.querySelector('.skill-category').value;
+                        const values = item.querySelector('.skill-values').value;
+                        if (category) dynamicContent += `<p><strong>${category}:</strong> ${values}</p>`;
+                    });
+                    dynamicContent += '</div>';
+                } else if (type === 'work') {
+                    dynamicContent += '<h2 class="resume-section-title">Work Experience</h2>';
+                    section.querySelectorAll('.work-item-form').forEach(item => {
+                        const title = item.querySelector('.work-title').value;
+                        const date = item.querySelector('.work-date').value;
+                        const desc = item.querySelector('.work-desc').value;
+                        if (title) dynamicContent += `<div class="work-item"><div class="item-header"><span>${title}</span><span class="date">${date}</span></div><p>${desc}</p></div>`;
+                    });
+                } else if (type === 'education') {
+                    dynamicContent += '<h2 class="resume-section-title">Education</h2>';
+                    section.querySelectorAll('.education-item-form').forEach(item => {
+                         const school = item.querySelector('.edu-school').value;
+                         const date = item.querySelector('.edu-date').value;
+                         const degree = item.querySelector('.edu-degree').value;
+                         const courses = item.querySelector('.edu-courses').value;
+                         if(school) dynamicContent += `<div class="education-item"><div class="item-header"><span>${school}</span><span class="date">${date}</span></div><ul><li>${degree}</li></ul><p><strong>Relevant Coursework:</strong> ${courses}</p></div>`;
+                    });
+                } else if (type === 'projects') {
+                    dynamicContent += '<h2 class="resume-section-title">Projects</h2>';
+                    section.querySelectorAll('.project-item-form').forEach(item => {
+                        const name = item.querySelector('.proj-name').value;
+                        const desc = item.querySelector('.proj-desc').value;
+                        const tech = item.querySelector('.proj-tech').value;
+                        if(name) dynamicContent += `<div class="project-item"><h3><strong>Name:</strong> ${name}</h3><p><strong>Description:</strong> ${desc}</p><p><strong>Technologies Used:</strong> ${tech}</p></div>`;
+                    });
+                }
+            });
+
+            document.getElementById('resume-preview').innerHTML = `
+                <div class="resume-header"><h1>${name}</h1><p>${email} | ${phone} | ${links}</p></div>
+                ${dynamicContent}
+            `;
+        }
+        
+        // --- HIGH-FIDELITY PDF GENERATION ---
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+            // --- CONFIGURATION & CONSTANTS ---
+            const FONT_COLOR = '#000000';
+            const LEFT_MARGIN = 15;
+            const RIGHT_MARGIN = 210 - 15;
+            const CONTENT_WIDTH = RIGHT_MARGIN - LEFT_MARGIN;
+            const LINE_HEIGHT = 4.5; // Controls spacing between lines of text
+            const SPACE_AFTER_TITLE = 8;
+            const SPACE_AFTER_ITEM = 7;
+            const SPACE_AFTER_SECTION = 8;
+
+            let currentY = 20;
+
+            // --- HELPER FUNCTIONS ---
+            const addSectionTitle = (title) => {
+                currentY += (currentY === 28) ? 0 : SPACE_AFTER_SECTION; 
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.setTextColor(FONT_COLOR);
+                doc.text(title, LEFT_MARGIN, currentY);
+                currentY += 2;
+                doc.setDrawColor(FONT_COLOR);
+                doc.setLineWidth(0.5);
+                doc.line(LEFT_MARGIN, currentY, RIGHT_MARGIN, currentY);
+                currentY += SPACE_AFTER_TITLE;
+            };
+
+            const addWrappedText = (text, x, y, options) => {
+                const lines = doc.splitTextToSize(text, options.maxWidth);
+                doc.text(lines, x, y, { align: options.align || 'left', lineHeightFactor: 1.25 });
+                return y + (lines.length * LINE_HEIGHT);
+            };
+            
+            // --- 1. HEADER ---
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(28);
+            doc.setTextColor(FONT_COLOR);
+            doc.text(document.getElementById('name').value, 105, currentY, { align: 'center' });
+            currentY += 8;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            const contactInfo = `${document.getElementById('email').value} | ${document.getElementById('phone').value} | ${document.getElementById('links').value}`;
+            doc.text(contactInfo, 105, currentY, { align: 'center' });
+            
+            // --- 2. DYNAMIC SECTIONS ---
+            document.querySelectorAll('#form-sections-container .draggable-section').forEach(section => {
+                const type = section.dataset.sectionType;
+
+                if (type === 'skills') {
+                    addSectionTitle('Skills');
+                    doc.setFontSize(10);
+                    const SKILL_VALUE_X = LEFT_MARGIN + 55;
+                    section.querySelectorAll('.skill-item-form').forEach(item => {
+                        const category = item.querySelector('.skill-category').value;
+                        const values = item.querySelector('.skill-values').value;
+                        if (category) {
+                            doc.setFont('helvetica', 'bold');
+                            doc.text(category + ':', LEFT_MARGIN + 5, currentY);
+                            doc.setFont('helvetica', 'normal');
+                            currentY = addWrappedText(values, SKILL_VALUE_X, currentY, { maxWidth: 125 });
+                        }
+                    });
+                } else if (type === 'work') {
+                    addSectionTitle('Work Experience');
+                    section.querySelectorAll('.work-item-form').forEach(item => {
+                        const title = item.querySelector('.work-title').value;
+                        const date = item.querySelector('.work-date').value;
+                        const desc = item.querySelector('.work-desc').value;
+                        if (title) {
+                            doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+                            doc.text(title, LEFT_MARGIN, currentY);
+                            doc.setFont('helvetica', 'normal');
+                            doc.text(date, RIGHT_MARGIN, currentY, { align: 'right' });
+                            currentY += 5;
+                            doc.setFontSize(10);
+                            currentY = addWrappedText(desc, LEFT_MARGIN + 2, currentY, { maxWidth: CONTENT_WIDTH - 2, align: 'justify' });
+                            currentY += SPACE_AFTER_ITEM;
+                        }
+                    });
+                } else if (type === 'education') {
+                    addSectionTitle('Education');
+                    section.querySelectorAll('.education-item-form').forEach(item => {
+                         const school = item.querySelector('.edu-school').value;
+                         const date = item.querySelector('.edu-date').value;
+                         const degree = item.querySelector('.edu-degree').value;
+                         const courses = item.querySelector('.edu-courses').value;
+                         if(school) {
+                            doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+                            doc.text(school, LEFT_MARGIN, currentY);
+                            doc.setFont('helvetica', 'normal');
+                            doc.text(date, RIGHT_MARGIN, currentY, { align: 'right' });
+                            currentY += 5;
+                            doc.setFontSize(10);
+                            doc.text('• ' + degree, LEFT_MARGIN + 2, currentY);
+                            currentY += 5;
+
+                            doc.setFont('helvetica', 'bold');
+                            const label = 'Relevant Coursework:';
+                            doc.text(label, LEFT_MARGIN + 2, currentY);
+                            doc.setFont('helvetica', 'normal');
+                            const labelWidth = doc.getTextWidth(label);
+                            currentY = addWrappedText(courses, LEFT_MARGIN + 2 + labelWidth + 2, currentY, {maxWidth: CONTENT_WIDTH - (labelWidth + 4), align: 'justify'});
+                            currentY += SPACE_AFTER_ITEM;
+                         }
+                    });
+                } else if (type === 'projects') {
+                    addSectionTitle('Projects');
+                     section.querySelectorAll('.project-item-form').forEach(item => {
+                         const name = item.querySelector('.proj-name').value;
+                         const desc = item.querySelector('.proj-desc').value;
+                         const tech = item.querySelector('.proj-tech').value;
+                         if (name) {
+                            doc.setFontSize(10);
+                            
+                            // Project Name
+                            let label = 'Name:';
+                            doc.setFont('helvetica', 'bold');
+                            doc.text(label, LEFT_MARGIN, currentY);
+                            let labelWidth = doc.getTextWidth(label);
+                            doc.setFont('helvetica', 'normal');
+                            currentY = addWrappedText(name, LEFT_MARGIN + labelWidth + 2, currentY, { maxWidth: CONTENT_WIDTH - (labelWidth + 2) });
+                            currentY += 2;
+
+                            // Project Description
+                            label = 'Description:';
+                            doc.setFont('helvetica', 'bold');
+                            doc.text(label, LEFT_MARGIN, currentY);
+                            labelWidth = doc.getTextWidth(label);
+                            doc.setFont('helvetica', 'normal');
+                            currentY = addWrappedText(desc, LEFT_MARGIN + labelWidth + 2, currentY, { maxWidth: CONTENT_WIDTH - (labelWidth + 2), align: 'justify' });
+                            currentY += 2;
+                            
+                            // Project Technologies
+                            label = 'Technologies Used:';
+                            doc.setFont('helvetica', 'bold');
+                            doc.text(label, LEFT_MARGIN, currentY);
+                            labelWidth = doc.getTextWidth(label);
+                            doc.setFont('helvetica', 'normal');
+                            currentY = addWrappedText(tech, LEFT_MARGIN + labelWidth + 2, currentY, { maxWidth: CONTENT_WIDTH - (labelWidth + 2), align: 'justify' });
+                            currentY += SPACE_AFTER_ITEM;
+                         }
+                    });
+                }
+            });
+
+            doc.save('resume.pdf');
+        }
+
+        // --- INITIAL SETUP ---
+        window.onload = () => {
+             // Initialize SortableJS for drag-and-drop
+             new Sortable(document.getElementById('form-sections-container'), {
+                animation: 150,
+                handle: '.section-handle', // Class of the element to use as a drag handle
+             });
+
+             // Add default skills
+             addSkill('Programming Languages', 'C | C++ | Java | Python | JavaScript | Typescript | SQL | PHP');
+             addSkill('Frontend', 'HTML5 | CSS | React Js | Next Js | Tailwind | Redux');
+             addSkill('Backend', 'Node Js | Express Js | REST API | OAuth');
+             addSkill('Databases', 'MongoDB | MySQL | PostgreSQL | Firebase | SQL Server');
+             addSkill('DevOps & Version Control', 'Git | GitHub | Vercel | Netlify');
+             addSkill('Testing and Tools', 'Postman | Microsoft Office');
+             addSkill('Language Known', 'English, Gujrati, Hindi');
+
+             // Add default work experience
+             addWorkExperience('Prodigy Infotech - Web Development Intern (Remote)', 'Aug - 2024', 'During my internship at Prodigy Infotech, I learned the Web Development and completed tasks that strengthened my development skills. I built a dynamic website, where I integrated front-end and back-end functionalities to showcase products and facilitate transactions. I successfully completed all tasks and received a Letter of Recommendation (LOR) and a certificate for my work.');
+             
+             // Add default education
+             addEducation('LDRP Institute of Technology and Research, Gandhinagar', '2021 - 2025', 'BE in Computer Engineering', 'Object Oriented Programming, DBMS, Discrete Mathematics, Data Structures and Algorithms, Operating Systems, Computer Networks, Advanced Java Programming, Design and Analysis of Algorithm, Software Engineering, Theory of Computation, Artificial Intelligence, Machine Learning, Cryptography and Network Security');
+             
+             // Add default projects
+             addProject('Tomato delivery | LINK', 'food delivery website tomato, brings the best local restaurants directly to your doorstep...', 'React.js, JavaScript, node.js, MongoDB, express');
+             addProject('Job Scout | LINK', 'It is Full-stack Job-portal Website in which the recruiter can add jobs and the person who wants job can apply for this job...', 'React.js, JavaScript, node.js, MongoDB, express');
+             addProject('Handwritten Digit Pattern Recognition | LINK', 'It is used to recognize the photo of a digit which is handwritten if you show handwritten digit photo it will show result...', 'Python, TensorFlow, NumPy');
+
+             generateResume(); // Generate initial preview on load
+        }
+    </script>
+
+</body>
+</html>
